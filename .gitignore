@@ -8,3 +8,6 @@ __pycache__/
 
 data/
 data_chunked/
+saved_training/
+
+.python-version

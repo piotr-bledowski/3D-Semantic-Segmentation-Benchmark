@@ -151,7 +151,7 @@ def preprocess_batch_to_train_format(
     label = torch.zeros((B, max_length, num_classes), dtype=torch.float32, device=batch_input.device)
     for i, sample_labels in enumerate(y):
         for j, lbl in enumerate(sample_labels):
-            if j > max_length: # jakby się tu zepsuło to dać >=
+            if j >= max_length: # jakby się tu zepsuło to dać >=
                 break
             idx = mapping.index(lbl)
             if idx == -1:
@@ -229,7 +229,7 @@ def evaluate(model, test_loader, criterion, device, mapping, cut, sampling):
 
 def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoader,
                 test_loader: torch.utils.data.DataLoader, mapping,  device = None, lr = 0.001, epochs = 20, print_records = False,
-                records_dir: str = None, cut: int=None, sampling: float = None) -> torch.nn.Module:
+                records_dir: str = None, records_filename: str = None, cut: int=None, sampling: float = None) -> torch.nn.Module:
     """
 
     Args:
@@ -281,7 +281,7 @@ def train_model(model: torch.nn.Module, train_loader: torch.utils.data.DataLoade
             print(f"Val Loss: {val_loss}, Val Accuracy: {val_acc}")
 
     if not records_dir is None:
-        with open(os.path.join(records_dir, "records.pkl"), "wb") as f:
+        with open(os.path.join(records_dir, f"{records_filename}.pkl"), "wb") as f:
             to_dump = {"train_loss": train_losses, "val_loss": val_losses, "val_acc": val_metrics}
             pickle.dump(to_dump, f)
     return model

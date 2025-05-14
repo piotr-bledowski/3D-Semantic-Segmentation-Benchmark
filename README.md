@@ -7,3 +7,5 @@ Papers:
 - Dynamic Graph CNN: https://arxiv.org/pdf/1801.07829
 
 test_data to folder z małym wycinkiem datasetu do testowania
+
+train.py script trains the selected model, and saves the weights and records into the saved_training directory.
