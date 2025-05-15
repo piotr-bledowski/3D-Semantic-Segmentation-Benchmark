@@ -64,6 +64,8 @@ def group(centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.T
     grouped_coords = coords[batch_indices, topk_indices]
     grouped_features = features[batch_indices, topk_indices]
 
+    grouped_coords -= centroid_coords.view(B, C, 1, 3) # Normalize the coordinates of points within regions. 
+
     return torch.cat([grouped_coords, grouped_features], dim=-1)
 
 
