@@ -266,36 +266,36 @@ class InvResMLP(nn.Module):
     
     def forward(self, centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         input_features = features
-        print("      input features shape:", input_features.shape)
-        print("      centroid_coords shape:", centroid_coords.shape)
-        print("      coords shape:", coords.shape)
+        # print("      input features shape:", input_features.shape)
+        # print("      centroid_coords shape:", centroid_coords.shape)
+        # print("      coords shape:", coords.shape)
 
         grouped = group(centroid_coords, coords, features, self.radius, self.K, True)
-        print("      grouped shape:", grouped.shape)
+        # print("      grouped shape:", grouped.shape)
 
         features = grouped.permute(0, 3, 1, 2)
-        print("      features after permute shape:", features.shape)
+        # print("      features after permute shape:", features.shape)
 
         features = self.neighbour_features_mlp(features)
-        print("      features after neighbour_features_mlp shape:", features.shape)
+        # print("      features after neighbour_features_mlp shape:", features.shape)
 
         features = features.permute(0, 2, 3, 1)
-        print("      features after second permute shape:", features.shape)
+        # print("      features after second permute shape:", features.shape)
 
         features = reduce(features, self.pooling_type)
-        print("      features after reduce shape:", features.shape)
+        # print("      features after reduce shape:", features.shape)
 
         features = features.permute(0, 2, 1)
-        print("      features after third permute shape:", features.shape)
+        # print("      features after third permute shape:", features.shape)
 
         features = self.point_features_mlp(features)
-        print("      features after point_features_mlp shape:", features.shape)
+        # print("      features after point_features_mlp shape:", features.shape)
 
         features = features.permute(0, 2, 1)
-        print("      features after fourth permute shape:", features.shape)
+        # print("      features after fourth permute shape:", features.shape)
 
-        print("            before addition shape:", features.shape, input_features.shape)
+        # print("            before addition shape:", features.shape, input_features.shape)
         features = features + input_features
-        print("      features after addition shape:", features.shape, flush=True)
+        # print("      features after addition shape:", features.shape, flush=True)
 
         return centroid_coords, features
