@@ -42,7 +42,7 @@ class PointNeXt(nn.Module):
 
         self.sa1 = SetAbstraction(1024, 0.1, mlp_last + 3, [32, 32, 64], grouping_norm=True) # what point count and inner layers?
         sa1_last = self.sa1.point_net.conv[-1].out_channels
-        self.irmlp1 = InvResMLP(0.1, sa1_last + 3, sa1_last, 32) # what radius after normalization?
+        self.irmlp1 = InvResMLP(0.1, sa1_last + 3, sa1_last, 32)
 
         self.sa2 = SetAbstraction(256, 0.2, sa1_last + 3, [64, 64, 128], grouping_norm=True)
         sa2_last = self.sa2.point_net.conv[-1].out_channels
