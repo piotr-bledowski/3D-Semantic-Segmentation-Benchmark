@@ -47,15 +47,15 @@ class PointNeXt(nn.Module):
         self.sa2 = SetAbstraction(256, 0.2, sa1_last + 3, [64, 64, 128], grouping_norm=True)
         sa2_last = self.sa2.point_net.conv[-1].out_channels
         self.irmlp2 = InvResMLP(0.1, sa2_last + 3, sa2_last, 32)
-        self.irmlp2_1 = InvResMLP(0.1, sa2_last + 3, sa2_last, 32)
+        self.irmlp2_1 = InvResMLP(0.2, sa2_last + 3, sa2_last, 32)
 
         self.sa3 = SetAbstraction(64, 0.4, sa2_last + 3, [128, 128, 256], grouping_norm=True)
         sa3_last = self.sa3.point_net.conv[-1].out_channels
-        self.irmlp3 = InvResMLP(0.1, sa3_last + 3, sa3_last, 32)
+        self.irmlp3 = InvResMLP(0.4, sa3_last + 3, sa3_last, 32)
 
         self.sa4 = SetAbstraction(16, 0.8, sa3_last + 3, [256, 256, 512], grouping_norm=True)
         sa4_last = self.sa4.point_net.conv[-1].out_channels
-        self.irmlp4 = InvResMLP(0.1, sa4_last + 3, sa4_last, 16) # there are not enough points (16) to group them in groups of 32
+        self.irmlp4 = InvResMLP(0.8, sa4_last + 3, sa4_last, 16) # there are not enough points (16) to group them in groups of 32
 
 
         self.fp4 = FeaturePropagation(sa4_last + sa3_last, [256, 256])
