@@ -1,5 +1,6 @@
 import torch
 from data_processing.chunked_datasets import create_chunked_dataloaders
+from models.PointNeXt.PointNeXt import PointNeXt
 from models.PointNetpp.PointNetpp import PointNetpp
 from models.PointNet.PointNet import PointNetSeg
 from Training.train_model import train_model
@@ -34,7 +35,7 @@ if __name__ == '__main__':
     os.makedirs(TRAINING_HISTORY_PATH, exist_ok=True)
 
     parser = argparse.ArgumentParser(description="Train a selected model.")
-    parser.add_argument("model", help="Name of the model to train.", choices=['PointNet', 'PointNet++'])
+    parser.add_argument("model", help="Name of the model to train.", choices=['PointNet', 'PointNet++', 'PointNeXt'])
     args = parser.parse_args()
 
     # # Create dataloaders with optimized loading
@@ -54,6 +55,8 @@ if __name__ == '__main__':
         raw_model = PointNetSeg(part_classes=NUM_CLASSES)
     elif model_name == 'PointNet++':
         raw_model = PointNetpp(part_classes=NUM_CLASSES)
+    elif model_name == 'PointNeXt':
+        raw_model = PointNeXt(part_classes=NUM_CLASSES)
 
     model_trained = train_model(raw_model, train_loader, test_loader, s3dis_classes, print_records=True,
                         records_dir=TRAINING_HISTORY_PATH, records_filename=model_name, epochs=30, sampling=None, cut=1000)

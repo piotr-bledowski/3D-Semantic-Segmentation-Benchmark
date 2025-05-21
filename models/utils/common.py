@@ -34,7 +34,7 @@ def sample(coords: torch.Tensor, C: int) -> torch.Tensor:
     return coords[batch_indices, point_indices, :]
 
 
-def group(centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.Tensor, r: float, K: int) -> torch.Tensor:
+def group(centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.Tensor, r: float, K: int, normalize: bool = False) -> torch.Tensor:
     """
     For each centroid, groups points that are close to it, to create a local region; uses ball query.
 
@@ -64,7 +64,9 @@ def group(centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.T
     grouped_coords = coords[batch_indices, topk_indices]
     grouped_features = features[batch_indices, topk_indices]
 
-    grouped_coords -= centroid_coords.view(B, C, 1, 3) # Normalize the coordinates of points within regions. 
+    grouped_coords -= centroid_coords.view(B, C, 1, 3) # Normalize the coordinates of points within regions. # To local coordinates
+    if normalize:
+        grouped_coords /= r
 
     return torch.cat([grouped_coords, grouped_features], dim=-1)
 
@@ -180,7 +182,7 @@ class SetAbstraction(nn.Module):
     Set Abstraction module of the PointNet++ architecture.
     """
 
-    def __init__(self, C: int, radius: float, in_channels: int, mlps: list[int], K: int = 32, pooling_type: str = 'max'):
+    def __init__(self, C: int, radius: float, in_channels: int, mlps: list[int], K: int = 32, pooling_type: str = 'max', grouping_norm: bool = False):
         """
         Args:
             C (int): Number of regions the input will be split into.
@@ -189,6 +191,7 @@ class SetAbstraction(nn.Module):
             mlps (list[int]): Widths of each layer in the MLP network.
             K (int): Number of points in each region.
             pooling_type (str): Type of pooling used after the MLP network, either 'max', or 'avg'.
+            grouping_norm (bool): Whether to normalize the coordinates of points within regions. It divides coordinates by radius. Used in PointNeXt.
         """
         super().__init__()
         self.point_net = MiniPointNet(in_channels, mlps)
@@ -196,10 +199,11 @@ class SetAbstraction(nn.Module):
         self.radius = radius
         self.K = K
         self.pooling_type = pooling_type
+        self.grouping_norm = grouping_norm
 
     def forward(self, coords: torch.Tensor, features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         centroid_coords = sample(coords, self.C)
-        features = group(centroid_coords, coords, features, self.radius, self.K)
+        features = group(centroid_coords, coords, features, self.radius, self.K, self.grouping_norm)
 
         features = features.permute(0, 3, 1, 2)
         features = self.point_net(features)
@@ -237,3 +241,61 @@ class FeaturePropagation(nn.Module):
         features = features.permute(0, 2, 1)
 
         return features
+
+
+class InvResMLP(nn.Module):
+    """
+    Inverted Residual MLP block for the PointNeXt architecture.
+    """
+    def __init__(self, radius: int, in_channels: int, mlp_size: int, K: int, pooling_type: str = 'max'):
+        """
+        Args:
+            radious (int): Radius of the sphere used to create local regions.
+            in_channels (int): Number of input channels for the MLP network; should be set to the number of output features of the previous SA module + 3.
+            mlp_size (int): Width of the MLP network.
+            K (int): Number of points in each region.
+            pooling_type (str): Type of pooling used after the MLP network, either 'max', or 'avg'.
+        """
+        super().__init__()
+        self.radius = radius
+        self.K = K
+        self.pooling_type = pooling_type
+
+        self.neighbour_features_mlp = MiniPointNet(in_channels, [mlp_size])
+        self.point_features_mlp = UnitPointNet(mlp_size, [4 * mlp_size, mlp_size])
+    
+    def forward(self, centroid_coords: torch.Tensor, coords: torch.Tensor, features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        input_features = features
+        # print("      input features shape:", input_features.shape)
+        # print("      centroid_coords shape:", centroid_coords.shape)
+        # print("      coords shape:", coords.shape)
+
+        grouped = group(centroid_coords, coords, features, self.radius, self.K, True)
+        # print("      grouped shape:", grouped.shape)
+
+        features = grouped.permute(0, 3, 1, 2)
+        # print("      features after permute shape:", features.shape)
+
+        features = self.neighbour_features_mlp(features)
+        # print("      features after neighbour_features_mlp shape:", features.shape)
+
+        features = features.permute(0, 2, 3, 1)
+        # print("      features after second permute shape:", features.shape)
+
+        features = reduce(features, self.pooling_type)
+        # print("      features after reduce shape:", features.shape)
+
+        features = features.permute(0, 2, 1)
+        # print("      features after third permute shape:", features.shape)
+
+        features = self.point_features_mlp(features)
+        # print("      features after point_features_mlp shape:", features.shape)
+
+        features = features.permute(0, 2, 1)
+        # print("      features after fourth permute shape:", features.shape)
+
+        # print("            before addition shape:", features.shape, input_features.shape)
+        features = features + input_features
+        # print("      features after addition shape:", features.shape, flush=True)
+
+        return centroid_coords, features
