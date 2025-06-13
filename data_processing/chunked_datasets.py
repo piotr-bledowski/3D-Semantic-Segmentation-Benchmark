@@ -70,6 +70,7 @@ class ChunkedS3DISDataset(Dataset):
         print(f"Loading precomputed index from {index_cache_file}")
         with open(index_cache_file, 'rb') as f:
             cached_data = pickle.load(f)
+            cached_data['chunk_files'] = [filename.replace('\\', '/') for filename in cached_data['chunk_files']]
             
             # Get only the chunk files for the requested areas
             self.chunk_files = []

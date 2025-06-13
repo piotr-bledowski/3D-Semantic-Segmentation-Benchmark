@@ -7,7 +7,7 @@ from Training.train_model import train_model
 import os
 import argparse
 
-DATA_DIR_PATH = "test_data"
+DATA_DIR_PATH = "data_chunked"
 TRAINING_DIR_PATH = "saved_training"
 MODEL_SAVE_PATH = os.path.join(TRAINING_DIR_PATH, "models")
 TRAINING_HISTORY_PATH = os.path.join(TRAINING_DIR_PATH, "history")
