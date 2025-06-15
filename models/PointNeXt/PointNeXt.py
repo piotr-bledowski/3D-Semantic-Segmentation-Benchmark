@@ -36,7 +36,7 @@ class PointNeXt(nn.Module):
         #   - for FeaturePropagation
         #       - mlp list
 
-        self.mlp = UnitPointNet(6, [32])
+        self.mlp = UnitPointNet(9, [32])
         mlp_last = self.mlp.conv[-1].out_channels
 
 
@@ -76,6 +76,9 @@ class PointNeXt(nn.Module):
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, None, None]:
         # print(f"Input shape: {x.shape}")
+
+        x = x.permute(0, 2, 1)  # Change shape from (B, N, C) to (B, C, N)
+        # print(f"Shape after permute: {x.shape}")
 
         coords_s = x[:, :3, :]
         # print(f"0 shape: {coords_s.shape} {features_s.shape}")
@@ -138,10 +141,10 @@ class PointNeXt(nn.Module):
         x = x.permute(0, 2, 1)
         # print(f"Shape after final permute: {x.shape}")
 
-        x = F.log_softmax(x, dim=-1)
+        # x = F.log_softmax(x, dim=-1)
         # print(f"Shape after log_softmax: {x.shape}")
 
-        return x, None, None
+        return x
 
 
 
