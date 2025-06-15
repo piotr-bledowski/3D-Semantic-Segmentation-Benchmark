@@ -168,7 +168,7 @@ def train_model(
         tqdm.write(f'- Validation mean IoU: {mean_iou}')
         tqdm.write('-' * 15)
 
-        logger.add_scalar('Train/Total_Loss', train_loss, epoch)
+        logger.add_scalar('Train/Epoch_Loss', train_loss, epoch)
         logger.add_scalar('Val/Loss', val_loss, epoch)
         logger.add_scalar('Val/Accuracy', 100.0 * accuracy, epoch)
         logger.add_scalar('Val/Mean_Iou', 100.0 * mean_iou, epoch)
