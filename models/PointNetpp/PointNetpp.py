@@ -43,6 +43,6 @@ class PointNetpp(nn.Module):
         x = x.permute(0, 2, 1)
         x = self.conv(x)
         x = x.permute(0, 2, 1)
-        x = F.log_softmax(x, dim=-1)
+        # x = F.log_softmax(x, dim=-1)
 
         return x
