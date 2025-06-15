@@ -11,7 +11,7 @@ class PointNetpp(nn.Module):
     def __init__(self, part_classes: int):
         super().__init__()
 
-        self.sa1 = SetAbstraction(1024, 0.1, 6, [32, 32, 64])
+        self.sa1 = SetAbstraction(1024, 0.1, 9, [32, 32, 64])
         self.sa2 = SetAbstraction(256, 0.2, 64 + 3, [64, 64, 128])
         self.sa3 = SetAbstraction(64, 0.4, 128 + 3, [128, 128, 256])
         self.sa4 = SetAbstraction(16, 0.8, 256 + 3, [256, 256, 512])
@@ -25,7 +25,7 @@ class PointNetpp(nn.Module):
         self.conv = nn.Conv1d(128, part_classes, 1)
     
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, None, None]:
-        x = x.permute(0, 2, 1)
+        # x = x.permute(0, 2, 1)
         coords_0 = x[:, :, :3]
         features_0 = x[:, :, 3:]
 
@@ -45,4 +45,4 @@ class PointNetpp(nn.Module):
         x = x.permute(0, 2, 1)
         x = F.log_softmax(x, dim=-1)
 
-        return x, None, None # Te None są po to, żeby dostosować output do formatu oczekiwanego przez funckcję Training.trian_model. Lepiej byłoby oczywiście zmienić tę funkcję, ale jestem leniwy więc na razie jest tak.
+        return x
