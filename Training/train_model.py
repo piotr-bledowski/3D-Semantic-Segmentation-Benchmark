@@ -42,7 +42,7 @@ def masked_onehot_cross_entropy(
     #    utworzymy tensor pozycji 0..L-1, a potem porównamy z pad_starts
     device = logits.device
     positions = torch.arange(L, device=device).unsqueeze(0).expand(B, L)  # (B, L)
-    pad_starts = pad_starts.to(device)
+    pad_starts = pad_starts.to(device).long()
     mask = (positions < pad_starts.unsqueeze(1)).float()  # (B, L)
 
     # 4) aplikacja maski i redukcja
