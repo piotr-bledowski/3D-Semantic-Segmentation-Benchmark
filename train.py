@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     run_name = os.path.join(args.model, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     log_path = os.path.join(LOG_DIR, run_name)
-    model_path = os.path.join(MODEL_DIR, run_name)
+    model_path = os.path.join(MODEL_DIR, f'{run_name}.pt')
 
     os.makedirs(os.path.join(MODEL_DIR, args.model), exist_ok=True)
 

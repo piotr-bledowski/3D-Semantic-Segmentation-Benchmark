@@ -170,9 +170,9 @@ def train_model(
 
         logger.add_scalar('Train/Total_Loss', train_loss, epoch)
         logger.add_scalar('Val/Loss', val_loss, epoch)
-        logger.add_scalar('Val/Accuracy', accuracy, epoch)
-        logger.add_scalar('Val/Mean_Iou', mean_iou, epoch)
-        logger.add_tensor('Val/Ious', ious, epoch)
+        logger.add_scalar('Val/Accuracy', 100.0 * accuracy, epoch)
+        logger.add_scalar('Val/Mean_Iou', 100.0 * mean_iou, epoch)
+        logger.add_tensor('Val/Ious', 100.0 * ious, epoch)
         # logger.add_figure('Val/Confusion_Matrix', plot_confusion_matrix(matrix), epoch)
 
     progress_bar.close()
