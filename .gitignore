@@ -12,3 +12,6 @@ saved_training/
 S3DIS_blocks/
 
 .python-version
+
+saved_runs
+saved_models

@@ -1,65 +1,91 @@
 import torch
-from data_processing.chunked_datasets import create_chunked_dataloaders
+import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
+from data_processing.block_datasets import create_block_dataloaders
 from models.PointNeXt.PointNeXt import PointNeXt
 from models.PointNetpp.PointNetpp import PointNetpp
 from models.PointNet.PointNet import PointNetSeg
-from Training.train_model import train_model
+from models.dgcnn.dgcnn import DGCNNWithColor
+from Training.training import train_model
+from Training.train_model import masked_onehot_cross_entropy
 import os
 import argparse
+from datetime import datetime
 
-DATA_DIR_PATH = "data_chunked"
-TRAINING_DIR_PATH = "saved_training"
-MODEL_SAVE_PATH = os.path.join(TRAINING_DIR_PATH, "models")
-TRAINING_HISTORY_PATH = os.path.join(TRAINING_DIR_PATH, "history")
-BATCH_SIZE = 2
-NUM_CLASSES = 13  # dla S3DIS
-s3dis_classes = [
-    "ceiling",
-    "floor",
-    "wall",
-    "beam",
-    "column",
-    "window",
-    "door",
-    "table",
-    "chair",
-    "sofa",
-    "bookcase",
-    "board",
-    "clutter"
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True' # Because of Cuda out of memory
+
+LEARNING_RATE = 0.001
+NUM_EPOCHS = 10
+TRAIN_BATCH_SIZE = 8
+TEST_BATCH_SIZE = 2
+TRAIN_SAMPLING = 4096
+TEST_SAMPLING = None
+TEST_AREAS = {6}
+NUM_WORKERS = 2
+
+LOG_INTERVAL = 20
+LOG_DIR = 'saved_runs'
+MODEL_DIR = 'saved_models'
+DATA_DIR = 'S3DIS_blocks'
+
+ALL_AREAS = {1, 2, 3, 4, 5, 6}
+S3DIS_CLASSES = [
+    "ceiling", "floor", "wall", "beam", "column",
+    "window", "door", "table", "chair", "sofa",
+    "bookcase", "board", "clutter", "stairs"
 ]
+NUM_S3DIS_CLASSES = 14
+
 
 if __name__ == '__main__':
-    os.makedirs(TRAINING_DIR_PATH, exist_ok=True)
-    os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
-    os.makedirs(TRAINING_HISTORY_PATH, exist_ok=True)
-
     parser = argparse.ArgumentParser(description="Train a selected model.")
-    parser.add_argument("model", help="Name of the model to train.", choices=['PointNet', 'PointNet++', 'PointNeXt'])
+    parser.add_argument("model", help="Name of the model to train.", choices=['PointNet', 'PointNet++', 'PointNeXt', 'DeepGraphCnn'])
     args = parser.parse_args()
 
-    # # Create dataloaders with optimized loading
-    # # UWAGA!! dany plik z mapowaniem: chunked_s3dis_index_mapping.pkl nie wspiera jeżeli kożystamy z podzbioru zbioru
-    # # danego na dysku - trzeba dać require_index_file=False
-    train_loader, test_loader = create_chunked_dataloaders(
-        DATA_DIR_PATH,
-        batch_size=BATCH_SIZE,
-        require_index_file=False
+    run_name = os.path.join(args.model, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    log_path = os.path.join(LOG_DIR, run_name)
+    model_path = os.path.join(MODEL_DIR, run_name)
+
+    os.makedirs(os.path.join(MODEL_DIR, args.model), exist_ok=True)
+
+    logger = SummaryWriter(log_path)
+
+    if args.model == 'PointNet':
+        model = PointNetSeg(part_classes=NUM_S3DIS_CLASSES)
+    elif args.model == 'PointNet++':
+        model = PointNetpp(part_classes=NUM_S3DIS_CLASSES)
+    elif args.model == 'PointNeXt':
+        model  = PointNeXt(part_classes=NUM_S3DIS_CLASSES)
+    elif args.model == 'DeepGraphCnn':
+        model = DGCNNWithColor(num_classes=NUM_S3DIS_CLASSES)
+
+    print(f'Starting training of model {args.model}.')
+
+    train_loader, test_loader = create_block_dataloaders(
+        data_dir=DATA_DIR,
+        test_areas=TEST_AREAS,
+        train_batch_size=TRAIN_BATCH_SIZE,
+        test_batch_size=TEST_BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        train_sampling=TRAIN_SAMPLING,
+        test_sampling=TEST_SAMPLING,
+        train_shuffle=True,
+        test_shuffle=False
     )
 
-    # !!!! TYLKO DO TESTÓW - w przykładowych danych nie ma ich wystarczająco dużo aby zrobić zbiór testowy (walidacyjny)
-    test_loader = train_loader # usunąć w normalnym treningu
+    print(f'Initialized train dataloader with areas {ALL_AREAS - TEST_AREAS}, and test dataloader with areas {TEST_AREAS}.')
 
-    model_name = args.model
-    if model_name == 'PointNet':
-        raw_model = PointNetSeg(part_classes=NUM_CLASSES)
-    elif model_name == 'PointNet++':
-        raw_model = PointNetpp(part_classes=NUM_CLASSES)
-    elif model_name == 'PointNeXt':
-        raw_model = PointNeXt(part_classes=NUM_CLASSES)
+    criterion = masked_onehot_cross_entropy
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    model_trained = train_model(raw_model, train_loader, test_loader, s3dis_classes, print_records=True,
-                        records_dir=TRAINING_HISTORY_PATH, records_filename=model_name, epochs=30, sampling=None, cut=1000)
+    print(f'Using device {device}.')
+    print('-' * 15)
 
-    with open(os.path.join(MODEL_SAVE_PATH, f"{model_name}.pt"), "wb") as f:
-        torch.save(model_trained.state_dict(), f)
+    model = train_model(model, train_loader, test_loader, criterion, optimizer,
+                        device, logger, num_epochs=NUM_EPOCHS, log_interval=LOG_INTERVAL)
+
+    torch.save(model.state_dict(), model_path)
+
+    print(f'Model saved to: {model_path}.')
+    print(f'View logs with: tensorboard --logdir {LOG_DIR}')

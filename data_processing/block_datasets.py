@@ -133,7 +133,8 @@ class BlockS3DISDataset(Dataset):
 def create_block_dataloaders(
         data_dir: str,
         test_areas: set[int],
-        batch_size: int = 4,
+        train_batch_size: int = 4,
+        test_batch_size: int = 4,
         num_workers: int = 4,
         train_sampling: int | None = 4096,
         test_sampling: int | None = None,
@@ -145,7 +146,8 @@ def create_block_dataloaders(
     Args:
         data_dir (str): Path to the dataset directory.
         test_areas (set[int]): Areas to include in the test loader; the remaining ones will be included in the train loader.
-        batch_size (int): Batch size for train and test dataloaders.
+        train_batch_size (int): Batch size for the train dataloader.
+        test_batch_size (int): Batch size for the test dataloader.
         num_workers (int): Number of cpu workers to use.
         train_sampling (int, optional): If provided, the train dataloader will return this number of randomly sampled points from each block.
         test_sampling (int, optional): If provided, the train dataloader will return this number of randomly sampled points from each block.
@@ -163,7 +165,7 @@ def create_block_dataloaders(
 
     train_dataloader = DataLoader(
         train_dataset,
-        batch_size=batch_size,
+        batch_size=train_batch_size,
         shuffle=train_shuffle,
         num_workers=num_workers, 
         pin_memory=True,
@@ -171,7 +173,7 @@ def create_block_dataloaders(
     )
     test_dataloader = DataLoader(
         test_dataset,
-        batch_size=batch_size,
+        batch_size=test_batch_size,
         shuffle=test_shuffle,
         num_workers=num_workers, 
         pin_memory=True,
