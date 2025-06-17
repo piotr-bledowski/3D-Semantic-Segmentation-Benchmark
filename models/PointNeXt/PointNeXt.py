@@ -190,7 +190,7 @@ if __name__ == '__main__':
     os.makedirs(TRAINING_HISTORY_PATH, exist_ok=True)
 
     # Create dataloaders with optimized loading
-    # UWAGA!! dany plik z mapowaniem: chunked_s3dis_index_mapping.pkl nie wspiera jeżeli kożystamy z podzbioru zbioru
+    # UWAGA!! dany plik z mapowaniem: chunked_s3dis_index_mapping.pkl nie wspiera jeżeli korzystamy z podzbioru zbioru
     # danego na dysku - trzeba dać require_index_file=False
 
     train_loader, test_loader = create_chunked_dataloaders(

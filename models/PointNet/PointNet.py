@@ -8,7 +8,7 @@ class TNet(nn.Module):
     Spatial Transformer Network for input or feature transform.
     Predicts a k x k transformation matrix.
     """
-    def __init__(self, k=6):
+    def __init__(self, k=9):
         super(TNet, self).__init__()
         self.k = k
         self.conv1 = nn.Conv1d(k, 64, 1)
@@ -42,7 +42,7 @@ class PointNetEncoder(nn.Module):
     """
     Shared MLP + TNet modules. Outputs global features and per-point local features.
     """
-    def __init__(self, global_feat=True, feature_transform=False, k = 6):
+    def __init__(self, global_feat=True, feature_transform=False, k = 9):
         super(PointNetEncoder, self).__init__()
         self.stn = TNet(k=k)
         self.conv1 = nn.Conv1d(k, 64, 1)
@@ -57,7 +57,7 @@ class PointNetEncoder(nn.Module):
         self.global_feat = global_feat
 
     def forward(self, x):
-        # x: (B, 6, N)
+        # x: (B, 9, N)
         batch_size, _, num_points = x.size()
         # input transform
         trans = self.stn(x)
@@ -134,6 +134,7 @@ class PointNetSeg(nn.Module):
 
     def forward(self, x):
         # x: (B, 6, N)
+        x = torch.transpose(x, -1, -2)
         x, trans, trans_feat = self.feat(x)
         # x.shape = (bs, 1024 - cechy globalne calości + 64 - cechy indywidualne punktu, ilosc_punktow)
         x = F.relu(self.bn1(self.conv1(x)))
@@ -146,4 +147,4 @@ class PointNetSeg(nn.Module):
         x = torch.exp(x)
         sum_exp = torch.sum(x, keepdim=True, dim=-1)
         x = x / sum_exp
-        return x, trans, trans_feat
+        return x#, trans, trans_feat
